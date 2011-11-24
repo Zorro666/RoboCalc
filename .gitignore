@@ -1,3 +1,5 @@
 robocalc
 *.8
 *.swp
+*.o
+*.d
