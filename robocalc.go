@@ -57,6 +57,39 @@ func ComputeScore(values[5] int) (score int) {
 	return
 }
 
+func (board *Board) Valid() (valid bool) {
+	valid = false
+	var counts[6] int
+	for i := 0; i < 6; i++ {
+		counts[i] = 0
+	}
+	for y := 0; y < 5; y++ {
+		for x := 0; x < 5; x++ {
+			var v = board.m_values[x][y]
+			counts[v]++
+			if counts[v] > 6 {
+				return
+			}
+		}
+	}
+	valid = true
+	return
+}
+
+func (board *Board) GetValue(index int) (value int) {
+	x := index % 5
+	y := index / 5
+	value = board.m_values[x][y]
+	return
+}
+
+func (board *Board) SetValue(index int, value int) {
+	x := index % 5
+	y := index / 5
+	board.m_values[x][y] = value
+	return
+}
+
 func (board *Board) GetRow(row int) (values[5] int) {
 	for x := 0; x < 5; x++ {
 		values[x] = board.m_values[x][row]
@@ -114,14 +147,7 @@ func (board *Board) RandomBoard() {
 	}
 }
 
-func main() {
-	var error os.Error
-	log.SetFlags(log.Ltime|log.Lmicroseconds)
-
-	if error != nil {
-		log.Fatalf("%s", error.String())
-	}
-
+func monteCarlo() {
 	var bestBoard Board
 	for i := 0; ; i++ {
 		var board Board
@@ -145,4 +171,110 @@ func main() {
 	fmt.Println("------------")
 	fmt.Println(bestBoard)
 	fmt.Println("------------")
+}
+
+func findStartingBoard(board *Board) {
+
+	value := 0
+	count := 0
+	for i := 0; i < 25; i++ {
+		board.SetValue(24-i, value)
+		count++
+		if count == 6 {
+			count = 0
+			value++
+		}
+	}
+}
+
+func nextBoardInSearch(board *Board) (valid bool) {
+	i := 0
+	valid = true
+	for doMore:= true; doMore == true; {
+		index := 0
+		for carry := 1; carry == 1; {
+			carry = 0
+			oldValue := board.GetValue(index)
+			newValue := oldValue + 1
+			if newValue > 5 {
+				carry = 1
+				newValue = 0
+			}
+			board.SetValue(index, newValue)
+			index += carry
+			if index > 25 {
+				valid = false
+				return
+			}
+		}
+		doMore = (board.Valid() == false)
+		i++
+		if i % 100000000 == 0 {
+			fmt.Println("------------")
+			fmt.Println("Try Next Board")
+			fmt.Println(board)
+			fmt.Println("------------")
+		}
+	}
+ return
+}
+
+func fullSearch() {
+	var bestBoard Board
+	var board Board
+	for i := 0; i < 25; i++ {
+		board.SetValue(i, 0)
+	}
+	findStartingBoard(&board)
+	fmt.Println(board)
+
+	for i := 0; i >= 0; i++ {
+		valid := nextBoardInSearch(&board)
+		if valid == false {
+			fmt.Println("------------")
+			fmt.Println("BestBoard")
+			fmt.Println(bestBoard)
+			fmt.Println("------------")
+			return
+		}
+		board.ComputeScores()
+		if board.m_score > bestBoard.m_score {
+			bestBoard = board
+			fmt.Println("------------")
+			fmt.Println("New BestBoard")
+			fmt.Println(bestBoard)
+			fmt.Println("------------")
+		}
+		if i % 1000 == 0 {
+			fmt.Println("------------")
+			fmt.Println("Board")
+			fmt.Println(board)
+			fmt.Println("------------")
+			fmt.Println("BestBoard")
+			fmt.Println(bestBoard)
+			fmt.Println("------------")
+		}
+	}
+}
+
+func main() {
+	var error os.Error
+	log.SetFlags(log.Ltime|log.Lmicroseconds)
+
+	if error != nil {
+		log.Fatalf("%s", error.String())
+	}
+
+//	monteCarlo()
+	fullSearch()
+
+	var board Board
+	board.RandomBoard()
+	if board.Valid() == false {
+		fmt.Println("-----------------")
+		fmt.Println("INVALID BOARD")
+		fmt.Println(board)
+		fmt.Println("-----------------")
+		log.Fatalf("INVALID BOARD")
+	}
 }
