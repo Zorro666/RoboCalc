@@ -5,8 +5,6 @@ import "log"
 import "fmt"
 import "rand"
 
-var g_board Board
-
 type Board struct {
 	m_values[5][5] int
 	m_columnScores[5] int
@@ -202,7 +200,12 @@ func nextBoardInSearch(board *Board) (valid bool) {
 			}
 			board.SetValue(index, newValue)
 			index += carry
-			if index > 25 {
+			if index > 24 {
+				fmt.Println("---------")
+				fmt.Println("Big Index")
+				fmt.Println("---------")
+				fmt.Println("Try Board")
+				fmt.Println(board)
 				valid = false
 				return
 			}
@@ -228,9 +231,14 @@ func fullSearch() {
 	findStartingBoard(&board)
 	fmt.Println(board)
 
-	for i := 0; i >= 0; i++ {
+	for i := 0; ; i++ {
 		valid := nextBoardInSearch(&board)
 		if valid == false {
+			fmt.Println("------------")
+			fmt.Println("Finished")
+			fmt.Println("------------")
+			fmt.Println("Board")
+			fmt.Println(board)
 			fmt.Println("------------")
 			fmt.Println("BestBoard")
 			fmt.Println(bestBoard)
