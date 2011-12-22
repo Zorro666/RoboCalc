@@ -9,7 +9,7 @@ typedef struct Board
 	int m_score;
 } Board;
 
-void printBoard(Board* pBoard)
+void boardPrint(const Board* const pBoard)
 {
 	int x;
 	int y;
@@ -31,7 +31,7 @@ void printBoard(Board* pBoard)
 	printf("Score = %d\n", pBoard->m_score);
 }
 
-int ComputeScore(int values[5])
+int ComputeScore(const int values[5])
 {
 	int counts[6];
 	int i;
@@ -69,7 +69,47 @@ int ComputeScore(int values[5])
 	return score;
 }
 
-void GetRow(Board* pBoard, int row, int values[5])
+int boardValid(const Board* const pBoard)
+{
+	int counts[6];
+	int i;
+	int y;
+	for (i = 0; i < 6; i++)
+	{
+		counts[i] = 0;
+	}
+	for (y = 0; y < 5; y++)
+	{
+		int x;
+		for (x = 0; x < 5; x++)
+		{
+			const int v = pBoard->m_values[x][y];
+			counts[v]++;
+			if (counts[v] > 6)
+			{
+				return 0;
+			}
+		}
+	}
+	return 1;
+}
+
+int boardGetValue(const Board* const pBoard, const int index)
+{
+	const int x = index % 5;
+	const int y = index / 5;
+	const int value = pBoard->m_values[x][y];
+	return value;
+}
+
+void boardSetValue(Board* const pBoard, const int index, const int value) 
+{
+	const int x = index % 5;
+	int y = index / 5;
+	pBoard->m_values[x][y] = value;
+}
+
+void boardGetRow(const Board* const pBoard, const int row, int values[5])
 {
 	int x;
 	for (x = 0; x < 5; x++)
@@ -78,7 +118,7 @@ void GetRow(Board* pBoard, int row, int values[5])
 	}
 }
 
-void GetColumn(Board* pBoard, int column, int values[5])
+void boardGetColumn(const Board* const pBoard, const int column, int values[5])
 {
 	int y;
 	for (y = 0; y < 5; y++)
@@ -87,7 +127,7 @@ void GetColumn(Board* pBoard, int column, int values[5])
 	}
 }
 
-void ComputeScores(Board* pBoard)
+void boardComputeScores(Board* const pBoard)
 {
 	int minScore = 1000;
 	int x;
@@ -97,7 +137,7 @@ void ComputeScores(Board* pBoard)
 		int score;
 		int values[5];
 
-		GetRow(pBoard, y, values);
+		boardGetRow(pBoard, y, values);
 		score = ComputeScore(values);
 		pBoard->m_rowScores[y] = score;
 		if (score < minScore)
@@ -110,7 +150,7 @@ void ComputeScores(Board* pBoard)
 		int score;
 		int values[5];
 
-		GetColumn(pBoard, x, values);
+		boardGetColumn(pBoard, x, values);
 		score = ComputeScore(values);
 		pBoard->m_columnScores[x] = score;
 		if (score < minScore)
@@ -121,7 +161,7 @@ void ComputeScores(Board* pBoard)
 	pBoard->m_score = minScore;
 }
 
-void RandomBoard(Board* pBoard)
+void boardRandomBoard(Board* const pBoard)
 {
 	int x;
 	int y;
@@ -157,23 +197,17 @@ void RandomBoard(Board* pBoard)
 	}
 }
 
-int main(int argc, char* argv[])
+void monteCarlo(void)
 {
-	Board bestBoard;
 	int i = 0;
-
-	for (i = 0; i < argc; i++)
-	{
-		printf("argv[%d] '%s'\n", i, argv[i]);
-	}
-
+	Board bestBoard;
 	bestBoard.m_score = 0;
 	do
 	{
 		Board board;
 
-		RandomBoard(&board);
-		ComputeScores(&board);
+		boardRandomBoard(&board);
+		boardComputeScores(&board);
 		if (board.m_score > bestBoard.m_score)
 		{
 			bestBoard = board;
@@ -182,10 +216,10 @@ int main(int argc, char* argv[])
 		{
 			printf("------------\n");
 			printf("Board\n");
-			printBoard(&board);
+			boardPrint(&board);
 			printf("------------\n");
 			printf("BestBoard\n");
-			printBoard(&bestBoard);
+			boardPrint(&bestBoard);
 			printf("------------\n");
 		}
 		i++;
@@ -195,6 +229,144 @@ int main(int argc, char* argv[])
 	printf("------------\n");
 	printf("BestBoard\n");
 	printf("------------\n");
-	/*printf(bestBoard);*/
+	boardPrint(&bestBoard);
 	printf("------------\n");
+}
+
+void findStartingBoard(Board* const pBoard)
+{
+	int value = 0;
+	int count = 0;
+	int i;
+	for (i = 0; i < 25; i++)
+	{
+		boardSetValue(pBoard, 24-i, value);
+		count++;
+		if (count == 6)
+		{
+			count = 0;
+			value++;
+		}
+	}
+}
+
+int nextBoardInSearch(Board* const pBoard)
+{
+	int i = 0;
+	int doMore = 1;
+	while (doMore == 1)
+	{
+		int index = 0;
+		int carry = 1;
+		while (carry == 1)
+		{
+			const int oldValue = boardGetValue(pBoard, index);
+			int newValue = oldValue + 1;
+			carry = 0;
+			if (newValue > 5)
+			{
+				carry = 1;
+				newValue = 0;
+			}
+			boardSetValue(pBoard, index, newValue);
+			index += carry;
+			if (index > 24)
+			{
+				printf("------------\n");
+				printf("Big Index\n");
+				printf("------------\n");
+				printf("Try Board\n");
+				boardPrint(pBoard);
+				printf("------------\n");
+				return 0;
+			}
+		}
+		doMore = (boardValid(pBoard) == 0) ? 1 : 0;
+		i++;
+		if ((i % 100000000) == 0)
+		{
+			printf("------------\n");
+			printf("Try Next Board\n");
+			printf("------------\n");
+			boardPrint(pBoard);
+			printf("------------\n");
+		}
+	}
+	return 1;
+}
+
+void fullSearch(void)
+{
+	Board bestBoard;
+	Board board;
+	int i;
+	for (i = 0; i < 25; i++)
+	{
+		boardSetValue(&board, i, 0);
+	}
+	findStartingBoard(&board);
+	boardPrint(&board);
+
+	for (i = 0; ; i++)
+	{
+		int valid = nextBoardInSearch(&board);
+		if (valid == 0)
+		{
+			printf("------------\n");
+			printf("Finished\n");
+			printf("------------\n");
+			printf("Board\n");
+			boardPrint(&board);
+			printf("------------\n");
+			printf("BestBoard\n");
+			boardPrint(&bestBoard);
+			printf("------------\n");
+			return;
+		}
+		boardComputeScores(&board);
+		if (board.m_score > bestBoard.m_score)
+		{
+			bestBoard = board;
+			printf("------------\n");
+			printf("New BestBoard\n");
+			boardPrint(&bestBoard);
+			printf("------------\n");
+		}
+		if ((i % 1000) == 0)
+		{
+			printf("------------\n");
+			printf("Board\n");
+			boardPrint(&board);
+			printf("------------\n");
+			printf("BestBoard\n");
+			boardPrint(&bestBoard);
+			printf("------------\n");
+		}
+	}
+}
+
+int main(int argc, char* argv[])
+{
+	int i = 0;
+
+	for (i = 0; i < argc; i++)
+	{
+		printf("argv[%d] '%s'\n", i, argv[i]);
+	}
+
+/*	monteCarlo();*/
+	fullSearch();
+
+	{
+		Board board;
+		boardRandomBoard(&board);
+		if (boardValid(&board) == 0)
+		{
+			printf("------------\n");
+			printf("INVALID BOARD\n");
+			boardPrint(&board);
+			printf("------------\n");
+		}
+	}
+	return -1;
 }
