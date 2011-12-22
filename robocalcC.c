@@ -307,6 +307,8 @@ void fullSearch(void)
 	findStartingBoard(&board);
 	boardPrint(&board);
 
+	bestBoard.m_score = 0;
+
 	for (i = 0; ; i++)
 	{
 		int valid = nextBoardInSearch(&board);
