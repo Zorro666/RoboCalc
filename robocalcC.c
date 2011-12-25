@@ -3,7 +3,7 @@
 
 typedef struct Board
 {
-	int m_values[5][5];
+	int m_values[25];
 	int m_columnScores[5];
 	int m_rowScores[5];
 	int m_score;
@@ -13,11 +13,13 @@ void boardPrint(const Board* const pBoard)
 {
 	int x;
 	int y;
+	int i = 0;
 	for (y = 0; y < 5; y++)
 	{
 		for (x = 0; x < 5; x++)
 		{
-			printf("%3d ", pBoard->m_values[x][y]);
+			printf("%3d ", pBoard->m_values[i]);
+			i++;
 		}
 		printf("= %3d", pBoard->m_rowScores[y]);
 		printf("\n");
@@ -73,22 +75,17 @@ int boardValid(const Board* const pBoard)
 {
 	int counts[6];
 	int i;
-	int y;
 	for (i = 0; i < 6; i++)
 	{
 		counts[i] = 0;
 	}
-	for (y = 0; y < 5; y++)
+	for (i = 0; i < 25; i++)
 	{
-		int x;
-		for (x = 0; x < 5; x++)
+		const int v = pBoard->m_values[i];
+		counts[v]++;
+		if (counts[v] > 6)
 		{
-			const int v = pBoard->m_values[x][y];
-			counts[v]++;
-			if (counts[v] > 6)
-			{
-				return 0;
-			}
+			return 0;
 		}
 	}
 	return 1;
@@ -96,34 +93,34 @@ int boardValid(const Board* const pBoard)
 
 int boardGetValue(const Board* const pBoard, const int index)
 {
-	const int x = index % 5;
-	const int y = index / 5;
-	const int value = pBoard->m_values[x][y];
+	const int value = pBoard->m_values[index];
 	return value;
 }
 
 void boardSetValue(Board* const pBoard, const int index, const int value) 
 {
-	const int x = index % 5;
-	int y = index / 5;
-	pBoard->m_values[x][y] = value;
+	pBoard->m_values[index] = value;
 }
 
 void boardGetRow(const Board* const pBoard, const int row, int values[5])
 {
 	int x;
+	int index = row * 5;
 	for (x = 0; x < 5; x++)
 	{
-		values[x] = pBoard->m_values[x][row];
+		values[x] = pBoard->m_values[index];
+		index++;
 	}
 }
 
 void boardGetColumn(const Board* const pBoard, const int column, int values[5])
 {
 	int y;
+	int index = column;
 	for (y = 0; y < 5; y++)
 	{
-		values[y] = pBoard->m_values[column][y];
+		values[y] = pBoard->m_values[index];
+		index += 5;
 	}
 }
 
@@ -142,11 +139,13 @@ int boardBetterThan(Board* const pBoard, const int bestScore)
 	for (y = 0; y < 5; y++)
 	{
 		int score = 0;
+		int index = y * 5;
 
 		/* ComputeScore */
 		for (x = 0; x < 5; x++)
 		{
-			const int v = pBoard->m_values[x][y];
+			const int v = pBoard->m_values[index];
+			index++;
 			counts[v]++;
 		}
 
@@ -181,10 +180,12 @@ int boardBetterThan(Board* const pBoard, const int bestScore)
 	for (x = 0; x < 5; x++)
 	{
 		int score = 0;
+		int index = x;
 		/* ComputeScore */
 		for (y = 0; y < 5; y++)
 		{
-			int v = pBoard->m_values[x][y];
+			int v = pBoard->m_values[index];
+			index += 5;
 			counts[v]++;
 		}
 
@@ -256,8 +257,6 @@ void boardComputeScores(Board* const pBoard)
 
 void boardRandomBoard(Board* const pBoard)
 {
-	int x;
-	int y;
 	int i;
 	int j;
 	int num;
@@ -274,18 +273,15 @@ void boardRandomBoard(Board* const pBoard)
 		}
 	}
 
-	for (y = 0; y < 5; y++)
+	for (i = 0; i < 25; i++)
 	{
-		for (x = 0; x < 5; x++)
+		int deckPos = (rand() % deckSize);
+		int card = deck[deckPos];
+		pBoard->m_values[i] = card;
+		deckSize--;
+		for (j = deckPos; j < deckSize; j++)
 		{
-			int deckPos = (rand() % deckSize);
-			int card = deck[deckPos];
-			pBoard->m_values[x][y] = card;
-			deckSize--;
-			for (i = deckPos; i < deckSize; i++)
-			{
-				deck[i] = deck[i+1];
-			}
+			deck[j] = deck[j+1];
 		}
 	}
 }
@@ -305,7 +301,7 @@ void monteCarlo(void)
 		{
 			bestBoard = board;
 		}
-		if (i % 1000 == 0) 
+		if (i > 100000) 
 		{
 			printf("------------\n");
 			printf("Board\n");
@@ -314,6 +310,7 @@ void monteCarlo(void)
 			printf("BestBoard\n");
 			boardPrint(&bestBoard);
 			printf("------------\n");
+			i = 0;
 		}
 		i++;
 	}
@@ -376,13 +373,14 @@ int nextBoardInSearch(Board* const pBoard)
 		}
 		doMore = (boardValid(pBoard) == 0) ? 1 : 0;
 		i++;
-		if ((i % 100000000) == 0)
+		if (i > 100000000)
 		{
 			printf("------------\n");
 			printf("Try Next Board\n");
 			printf("------------\n");
 			boardPrint(pBoard);
 			printf("------------\n");
+			i = 0;
 		}
 	}
 	return 1;
@@ -432,7 +430,7 @@ void fullSearch(void)
 			boardPrint(&bestBoard);
 			printf("------------\n");
 		}
-		if ((i % 1000) == 0)
+		if (i > 100000)
 		{
 			printf("------------\n");
 			printf("Board\n");
@@ -441,6 +439,7 @@ void fullSearch(void)
 			printf("BestBoard\n");
 			boardPrint(&bestBoard);
 			printf("------------\n");
+			i = 0;
 		}
 	}
 }
