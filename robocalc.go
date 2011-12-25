@@ -102,6 +102,37 @@ func (board *Board) GetColumn(column int) (values[5] int) {
 	return
 }
 
+func (board *Board) BetterThan(bestScore int) (score int) {
+	minScore := 1000
+	for y := 0; y < 5; y++ {
+		score := ComputeScore( board.GetRow(y) )
+		board.m_rowScores[y] = score
+		if score < minScore {
+			minScore = score
+		}
+		if score < bestScore {
+			board.m_score = minScore
+			score = 0
+			return
+		}
+	}
+	for x := 0; x < 5; x++ {
+		score := ComputeScore( board.GetColumn(x) )
+		board.m_columnScores[x] = score
+		if score < minScore {
+			minScore = score
+		}
+		if score < bestScore {
+			board.m_score = minScore
+			score = 0
+			return
+		}
+	}
+	board.m_score = minScore
+	score = minScore
+	return
+}
+
 func (board *Board) ComputeScores() {
 	minScore := 1000
 	for y := 0; y < 5; y++ {
@@ -231,6 +262,10 @@ func fullSearch() {
 	findStartingBoard(&board)
 	fmt.Println(board)
 
+	bestBoard = board;
+	bestBoard.m_score = 0;
+	bestScore := bestBoard.m_score;
+
 	for i := 0; ; i++ {
 		valid := nextBoardInSearch(&board)
 		if valid == false {
@@ -245,9 +280,10 @@ func fullSearch() {
 			fmt.Println("------------")
 			return
 		}
-		board.ComputeScores()
-		if board.m_score > bestBoard.m_score {
+		newScore := board.BetterThan(bestScore)
+		if (newScore > bestScore) {
 			bestBoard = board
+			bestScore = newScore;
 			fmt.Println("------------")
 			fmt.Println("New BestBoard")
 			fmt.Println(bestBoard)
