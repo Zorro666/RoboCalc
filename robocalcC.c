@@ -127,6 +127,99 @@ void boardGetColumn(const Board* const pBoard, const int column, int values[5])
 	}
 }
 
+int boardBetterThan(Board* const pBoard, const int bestScore)
+{
+	int minScore = 1000;
+	int i;
+	int x;
+	int y;
+	int counts[6];
+	for (i = 0; i < 6; i++)
+	{
+		counts[i] = 0;
+	}
+
+	for (y = 0; y < 5; y++)
+	{
+		int score = 0;
+
+		/* ComputeScore */
+		for (x = 0; x < 5; x++)
+		{
+			const int v = pBoard->m_values[x][y];
+			counts[v]++;
+		}
+
+		for (i = 0; i < 6; i++)
+		{
+			const int count = counts[i];
+			if (count == 1)
+			{
+				score += i;
+			}
+			else if (count == 2)
+			{
+				score += 10*i;
+			}
+			else if (count >= 3)
+			{
+				score += 100;
+			}
+			counts[i] = 0;
+		}
+		pBoard->m_rowScores[y] = score;
+		if (score < minScore)
+		{
+			minScore = score;
+		}
+		if (score < bestScore)
+		{
+			pBoard->m_score = minScore;
+			return 0;
+		}
+	}
+	for (x = 0; x < 5; x++)
+	{
+		int score = 0;
+		/* ComputeScore */
+		for (y = 0; y < 5; y++)
+		{
+			int v = pBoard->m_values[x][y];
+			counts[v]++;
+		}
+
+		for (i = 0; i < 6; i++)
+		{
+			int count = counts[i];
+			if (count == 1)
+			{
+				score += i;
+			}
+			else if (count == 2)
+			{
+				score += 10*i;
+			}
+			else if (count >= 3)
+			{
+				score += 100;
+			}
+			counts[i] = 0;
+		}
+		pBoard->m_columnScores[x] = score;
+		if (score < minScore)
+		{
+			minScore = score;
+		}
+		if (score < bestScore)
+		{
+			pBoard->m_score = minScore;
+			return 0;
+		}
+	}
+	pBoard->m_score = minScore;
+	return minScore;
+}
+
 void boardComputeScores(Board* const pBoard)
 {
 	int minScore = 1000;
@@ -300,6 +393,7 @@ void fullSearch(void)
 	Board bestBoard;
 	Board board;
 	int i;
+	int bestScore = 0;
 	for (i = 0; i < 25; i++)
 	{
 		boardSetValue(&board, i, 0);
@@ -307,11 +401,14 @@ void fullSearch(void)
 	findStartingBoard(&board);
 	boardPrint(&board);
 
+	bestBoard = board;
 	bestBoard.m_score = 0;
+	bestScore = bestBoard.m_score;
 
 	for (i = 0; ; i++)
 	{
 		int valid = nextBoardInSearch(&board);
+		int newScore = 0;
 		if (valid == 0)
 		{
 			printf("------------\n");
@@ -325,10 +422,11 @@ void fullSearch(void)
 			printf("------------\n");
 			return;
 		}
-		boardComputeScores(&board);
-		if (board.m_score > bestBoard.m_score)
+		newScore = boardBetterThan(&board, bestScore);
+		if (newScore > bestScore)
 		{
 			bestBoard = board;
+			bestScore = newScore;
 			printf("------------\n");
 			printf("New BestBoard\n");
 			boardPrint(&bestBoard);
