@@ -6,7 +6,7 @@ import "fmt"
 import "rand"
 
 type Board struct {
-	m_values[5][5] int
+	m_values[25] int
 	m_columnScores[5] int
 	m_rowScores[5] int
 	m_score int
@@ -14,9 +14,11 @@ type Board struct {
 
 func (board Board) String() string {
 	var ret string = ""
+	index := 0
 	for y := 0; y < 5; y++ {
 		for x := 0; x < 5; x++ {
-			ret += fmt.Sprintf("%3d ", board.m_values[x][y])
+			ret += fmt.Sprintf("%3d ", board.m_values[index])
+			index++
 		}
 		ret += fmt.Sprintf("= %3d", board.m_rowScores[y])
 		ret += "\n"
@@ -61,13 +63,11 @@ func (board *Board) Valid() (valid bool) {
 	for i := 0; i < 6; i++ {
 		counts[i] = 0
 	}
-	for y := 0; y < 5; y++ {
-		for x := 0; x < 5; x++ {
-			var v = board.m_values[x][y]
-			counts[v]++
-			if counts[v] > 6 {
-				return
-			}
+	for i := 0; i < 25; i++ {
+		var v = board.m_values[i]
+		counts[v]++
+		if counts[v] > 6 {
+			return
 		}
 	}
 	valid = true
@@ -75,61 +75,105 @@ func (board *Board) Valid() (valid bool) {
 }
 
 func (board *Board) GetValue(index int) (value int) {
-	x := index % 5
-	y := index / 5
-	value = board.m_values[x][y]
+	value = board.m_values[index]
 	return
 }
 
 func (board *Board) SetValue(index int, value int) {
-	x := index % 5
-	y := index / 5
-	board.m_values[x][y] = value
+	board.m_values[index] = value
 	return
 }
 
 func (board *Board) GetRow(row int) (values[5] int) {
+	index := row * 5
 	for x := 0; x < 5; x++ {
-		values[x] = board.m_values[x][row]
+		values[x] = board.m_values[index]
+		index++
 	}
 	return
 }
 
 func (board *Board) GetColumn(column int) (values[5] int) {
+	index := column
 	for y := 0; y < 5; y++ {
-		values[y] = board.m_values[column][y]
+		values[y] = board.m_values[index]
+		index += 5
 	}
 	return
 }
 
-func (board *Board) BetterThan(bestScore int) (score int) {
+func (board *Board) BetterThan(bestScore int) (boardScore int) {
 	minScore := 1000
+	var counts[6] int
+	for i := 0; i < 6; i++ {
+		counts[i] = 0
+	}
 	for y := 0; y < 5; y++ {
-		score := ComputeScore( board.GetRow(y) )
+		score := 0
+
+		index := y * 5
+		for x := 0; x < 5; x++ {
+			var v = board.m_values[index]
+			index++
+			counts[v]++
+		}
+		for i := 0; i < 6; i++ {
+			var count int = counts[i]
+			counts[i] = 0
+			switch count {
+				case 1:
+					score += i
+				case 2:
+					score += 10*i
+				case 3, 4, 5:
+					score += 100
+			}
+		}
+
 		board.m_rowScores[y] = score
 		if score < minScore {
 			minScore = score
 		}
 		if score < bestScore {
 			board.m_score = minScore
-			score = 0
+			boardScore = 0
 			return
 		}
 	}
 	for x := 0; x < 5; x++ {
-		score := ComputeScore( board.GetColumn(x) )
+		score := 0
+
+		index := x
+		for y := 0; y < 5; y++ {
+			var v = board.m_values[index]
+			index += 5
+			counts[v]++
+		}
+		for i := 0; i < 6; i++ {
+			var count int = counts[i]
+			counts[i] = 0
+			switch count {
+				case 1:
+					score += i
+				case 2:
+					score += 10*i
+				case 3, 4, 5:
+					score += 100
+			}
+		}
+
 		board.m_columnScores[x] = score
 		if score < minScore {
 			minScore = score
 		}
 		if score < bestScore {
 			board.m_score = minScore
-			score = 0
+			boardScore = 0
 			return
 		}
 	}
 	board.m_score = minScore
-	score = minScore
+	boardScore = minScore
 	return
 }
 
@@ -163,15 +207,14 @@ func (board *Board) RandomBoard() {
 	}
 	deckSize := len(deck)
 
-	for y := 0; y < 5; y++ {
-		for x := 0; x < 5; x++ {
-			deckPos := rand.Intn(deckSize)
-			card := deck[deckPos]
-			board.m_values[x][y] = card
-			deckSize--
-			for i:= deckPos; i < deckSize; i++ {
-				deck[i] = deck[i+1]
-			}
+	index := 0
+	for i := 0; i < 25; i++ {
+		deckPos := rand.Intn(deckSize)
+		card := deck[deckPos]
+		board.m_values[index] = card
+		deckSize--
+		for j:= deckPos; j < deckSize; j++ {
+			deck[j] = deck[j+1]
 		}
 	}
 }
@@ -185,7 +228,8 @@ func monteCarlo() {
 		if board.m_score > bestBoard.m_score {
 			bestBoard = board
 		}
-		if i % 1000 == 0 {
+		if i > 100000 {
+			i = 0
 			fmt.Println("------------")
 			fmt.Println("Board")
 			fmt.Println(board)
@@ -243,7 +287,8 @@ func nextBoardInSearch(board *Board) (valid bool) {
 		}
 		doMore = (board.Valid() == false)
 		i++
-		if i % 100000000 == 0 {
+		if i > 100000000 {
+			i = 0
 			fmt.Println("------------")
 			fmt.Println("Try Next Board")
 			fmt.Println(board)
@@ -262,9 +307,9 @@ func fullSearch() {
 	findStartingBoard(&board)
 	fmt.Println(board)
 
-	bestBoard = board;
-	bestBoard.m_score = 0;
-	bestScore := bestBoard.m_score;
+	bestBoard = board
+	bestBoard.m_score = 0
+	bestScore := bestBoard.m_score
 
 	for i := 0; ; i++ {
 		valid := nextBoardInSearch(&board)
@@ -283,13 +328,14 @@ func fullSearch() {
 		newScore := board.BetterThan(bestScore)
 		if (newScore > bestScore) {
 			bestBoard = board
-			bestScore = newScore;
+			bestScore = newScore
 			fmt.Println("------------")
 			fmt.Println("New BestBoard")
 			fmt.Println(bestBoard)
 			fmt.Println("------------")
 		}
-		if i % 1000 == 0 {
+		if i > 100000 {
+			i = 0
 			fmt.Println("------------")
 			fmt.Println("Board")
 			fmt.Println(board)
