@@ -10,6 +10,21 @@ type Board struct {
 	m_columnScores[5] int
 	m_rowScores[5] int
 	m_score int
+	m_minScoreRow int
+	m_minScoreColumn int
+}
+
+func (board *Board) Init() {
+	for i := 0; i < 25; i++ {
+		board.m_values[i] = 0;
+	}
+	for i := 0; i < 5; i++ {
+		board.m_columnScores[i] = 0;
+		board.m_rowScores[i] = 0;
+	}
+	board.m_score = 0;
+	board.m_minScoreRow = 0;
+	board.m_minScoreColumn = 0;
 }
 
 func (board Board) String() string {
@@ -28,7 +43,10 @@ func (board Board) String() string {
 		ret += fmt.Sprintf("%3d ", board.m_columnScores[x])
 	}
 	ret += "\n"
-	ret += fmt.Sprintf("Score = %d\n", board.m_score)
+	ret += fmt.Sprintf("Score = %d", board.m_score)
+	ret += fmt.Sprintf(" MinRow = %d", board.m_minScoreRow)
+	ret += fmt.Sprintf(" MinColumn = %d\n", board.m_minScoreColumn)
+	ret += fmt.Sprintf("\n")
 
 	return ret
 }
@@ -133,6 +151,8 @@ func (board *Board) BetterThan(bestScore int) (boardScore int) {
 		board.m_rowScores[y] = score
 		if score < minScore {
 			minScore = score
+			board.m_minScoreRow = y
+			board.m_minScoreColumn = -1
 		}
 		if score < bestScore {
 			board.m_score = minScore
@@ -165,6 +185,8 @@ func (board *Board) BetterThan(bestScore int) (boardScore int) {
 		board.m_columnScores[x] = score
 		if score < minScore {
 			minScore = score
+			board.m_minScoreRow = -1
+			board.m_minScoreColumn = x
 		}
 		if score < bestScore {
 			board.m_score = minScore
@@ -179,11 +201,14 @@ func (board *Board) BetterThan(bestScore int) (boardScore int) {
 
 func (board *Board) ComputeScores() {
 	minScore := 1000
+
 	for y := 0; y < 5; y++ {
 		score := ComputeScore( board.GetRow(y) )
 		board.m_rowScores[y] = score
 		if score < minScore {
 			minScore = score
+			board.m_minScoreRow = y
+			board.m_minScoreColumn = -1
 		}
 	}
 	for x := 0; x < 5; x++ {
@@ -191,6 +216,8 @@ func (board *Board) ComputeScores() {
 		board.m_columnScores[x] = score
 		if score < minScore {
 			minScore = score
+			board.m_minScoreRow = -1
+			board.m_minScoreColumn = x
 		}
 	}
 	board.m_score = minScore
@@ -260,21 +287,39 @@ func findStartingBoard(board *Board) {
 	}
 }
 
-func nextBoardInSearch(board *Board) (valid bool) {
+func nextBoardInSearch(board *Board, minScoreRow int, minScoreColumn int) (valid bool) {
 	i := 0
 	valid = true
+	skipit := true
+	minRow := minScoreRow
+	minColumn := minScoreColumn
 	for doMore:= true; doMore == true; {
 		index := 0
+		row := 0
+		column := 0
 		for carry := 1; carry == 1; {
+			if column > 4 {
+				row++
+				column = 0
+			}
 			carry = 0
-			oldValue := board.GetValue(index)
+			oldValue := board.m_values[index]
 			newValue := oldValue + 1
+
+			/* skip past this value if changing it won't make the minimum scoring row/column change */
+			if (minRow != -1) && (minRow == row) {
+				skipit = false
+			}
+			if (minColumn != -1) && (minColumn == column) {
+				skipit = false
+			}
 			if newValue > 5 {
 				carry = 1
 				newValue = 0
 			}
-			board.SetValue(index, newValue)
+			board.m_values[index] = newValue
 			index += carry
+			column++
 			if index > 24 {
 				fmt.Println("---------")
 				fmt.Println("Big Index")
@@ -286,8 +331,13 @@ func nextBoardInSearch(board *Board) (valid bool) {
 			}
 		}
 		doMore = (board.Valid() == false)
+		if skipit {
+			doMore = true
+		}
 		i++
-		if i > 100000000 {
+		testPrintValue := 100000000 
+		//testPrintValue := 1
+		if i > testPrintValue {
 			i = 0
 			fmt.Println("------------")
 			fmt.Println("Try Next Board")
@@ -295,7 +345,7 @@ func nextBoardInSearch(board *Board) (valid bool) {
 			fmt.Println("------------")
 		}
 	}
- return
+	return
 }
 
 func fullSearch() {
@@ -305,6 +355,7 @@ func fullSearch() {
 		board.SetValue(i, 0)
 	}
 	findStartingBoard(&board)
+	board.ComputeScores()
 	fmt.Println(board)
 
 	bestBoard = board
@@ -312,7 +363,7 @@ func fullSearch() {
 	bestScore := bestBoard.m_score
 
 	for i := 0; ; i++ {
-		valid := nextBoardInSearch(&board)
+		valid := nextBoardInSearch(&board, bestBoard.m_minScoreRow, bestBoard.m_minScoreColumn)
 		if valid == false {
 			fmt.Println("------------")
 			fmt.Println("Finished")
