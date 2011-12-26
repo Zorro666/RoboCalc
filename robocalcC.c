@@ -9,6 +9,21 @@ typedef struct Board
 	int m_score;
 } Board;
 
+void boardInit(Board* const pBoard)
+{
+	int i;
+	for (i = 0; i < 25; i++)
+	{
+		pBoard->m_values[i] = 0;
+	}
+	for (i = 0; i < 5; i++)
+	{
+		pBoard->m_columnScores[i] = 0;
+		pBoard->m_rowScores[i] = 0;
+	}
+	pBoard->m_score = 0;
+}
+
 void boardPrint(const Board* const pBoard)
 {
 	int x;
@@ -290,10 +305,11 @@ void monteCarlo(void)
 {
 	int i = 0;
 	Board bestBoard;
-	bestBoard.m_score = 0;
+	boardInit(&bestBoard);
 	do
 	{
 		Board board;
+		boardInit(&board);
 
 		boardRandomBoard(&board);
 		boardComputeScores(&board);
@@ -350,7 +366,7 @@ int nextBoardInSearch(Board* const pBoard)
 		int carry = 1;
 		while (carry == 1)
 		{
-			const int oldValue = boardGetValue(pBoard, index);
+			const int oldValue = pBoard->m_values[index];
 			int newValue = oldValue + 1;
 			carry = 0;
 			if (newValue > 5)
@@ -358,7 +374,7 @@ int nextBoardInSearch(Board* const pBoard)
 				carry = 1;
 				newValue = 0;
 			}
-			boardSetValue(pBoard, index, newValue);
+			pBoard->m_values[index] = newValue;
 			index += carry;
 			if (index > 24)
 			{
@@ -392,6 +408,8 @@ void fullSearch(void)
 	Board board;
 	int i;
 	int bestScore = 0;
+
+	boardInit(&board);
 	for (i = 0; i < 25; i++)
 	{
 		boardSetValue(&board, i, 0);
@@ -400,7 +418,6 @@ void fullSearch(void)
 	boardPrint(&board);
 
 	bestBoard = board;
-	bestBoard.m_score = 0;
 	bestScore = bestBoard.m_score;
 
 	for (i = 0; ; i++)
@@ -458,6 +475,7 @@ int main(int argc, char* argv[])
 
 	{
 		Board board;
+		boardInit(&board);
 		boardRandomBoard(&board);
 		if (boardValid(&board) == 0)
 		{
